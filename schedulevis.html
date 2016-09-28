@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script src="jquery-3.1.1.min.js"></script>
+	<script src="raphael.min.js"></script>
+	<script src="schedulevis.js"></script>
+</head>
+<body>
+	<div id="area" align="left"></div>
+<form>
+	<p>
+		<div align="center">Active resource: <select title="resource" name="res" id="resource-select"></select></div><br />
+
+		<div class="container">
+			<table class="table table-striped">
+				<tr><th>Date</th><th>Value</th></tr>
+				<tr><td>#jobs</td><td><div id="njobs"></div></td></tr>
+				<tr><td>#periods</td><td><div id="nperiods"></div></td></tr>
+				<tr><td>#resources</td><td><div id="nres"></div></td></tr>
+				<tr><td>makespan</td><td><div id="makespan"></div></td></tr>
+			</table>
+		</div>
+	</p>
+
+</form>
+</body>
+</html>
