@@ -165,7 +165,7 @@ $(document).ready(function () {
             for(let t = 0; t <= this.numPeriods; t++) {
                 Helpers.drawLine(paper, new Vec2(this.origin.x + t * this.scale, this.origin.y), new Vec2(0, this.scale));
                 if(t < this.numPeriods) {
-                    var boxCenter = new Vec2(this.origin.x + (t + 0.5) * this.scale, this.origin.y + this.scale * 0.5);
+                    let boxCenter = new Vec2(this.origin.x + (t + 0.5) * this.scale, this.origin.y + this.scale * 0.5);
                     paper.text(boxCenter.x, boxCenter.y, (t+1)).attr('font-size', 22);
                 }
             }
@@ -177,6 +177,10 @@ $(document).ready(function () {
 
             for(let k = 0; k <= capr; k++) {
                 Helpers.drawLine(paper, new Vec2(this.origin.x - this.scale, this.origin.y - this.scale * k), new Vec2(this.scale, 0));
+                if(k < capr) {
+                    let boxCenter = new Vec2(this.origin.x - 0.5 * this.scale, this.origin.y - this.scale * (k + 0.5));
+                    paper.text(boxCenter.x, boxCenter.y, (k+1)).attr('font-size', 22);
+                }
             }
             paper.text(this.origin.x - this.scale * 1.5, this.origin.y - this.scale * capr, 'Kr').attr('font-size', 22);
 
