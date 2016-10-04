@@ -214,6 +214,9 @@ $(document).ready(function () {
                 }
             }
 
+            if(this.greyRect === undefined)
+                this.greyRect = paper.rect(0, 0, this.targetWidth(), this.targetHeight()).attr('fill', '#ccc').attr('opacity', 0.5);
+
             this.recomputeRects = false;
         }
 
@@ -313,9 +316,11 @@ $(document).ready(function () {
                     this.overlayObjects[j][k].hide();
                 }
             }
+            this.greyRect.hide();
         }
 
-        showOverlay(o) {
+        showOverlay(paper, o) {
+            this.greyRect.show();
             for(let k in o) {
                 if(k == 'lastpos') continue;
                 o[k].show();
@@ -347,10 +352,10 @@ $(document).ready(function () {
             if(hoveringOverJob !== undefined) {
                 /*paper.clear();
                 sd.draw(paper);*/
-                //paper.rect(0, 0, sd.targetWidth(), sd.targetHeight()).attr('fill', '#ccc').attr('opacity', 0.5);
+                //
                 var o = sd.getJobOverlay(paper, mousePos, hoveringOverJob);
                 sd.hideOverlays();
-                sd.showOverlay(o);
+                sd.showOverlay(paper, o);
                 ScheduleData.moveJobOverlay(o, mousePos.x, mousePos.y);
                 hoverBefore = true;
             } else if(hoverBefore) {
