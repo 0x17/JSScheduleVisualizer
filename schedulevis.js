@@ -10,6 +10,16 @@ $(document).ready(function () {
         'sts': [0, 0, 4, 6, 2, 8]
     };
 
+    var exampleObjectives = {
+        'objval': 23,
+        'costs': 18,
+        'qlevelfinish': 3,
+        'attrlevel0': 18,
+        'attrlevel1': 20,
+    };
+
+    var qlevel_captions = ['D', 'B', 'A'];
+
     class Vec2 {
         constructor(x, y) {
             this.x = x;
@@ -62,14 +72,24 @@ $(document).ready(function () {
             return obj;
         }
 
+        static parseObjectives(lines_str) {
+            var lines = lines_str.split('\n');
+            var lineToInt = function(line) { return parseInt(line.trim()); };
+            var keys = ['objval', 'costs', 'qlevelfinish', 'attrlevel0', 'attrlevel1'];
+            var obj = {};
+            var ctr = 0;
+            for(let k of keys) {
+                var x = lineToInt(lines[ctr]);
+                obj[k] = lineToInt(lines[ctr]);
+                ctr += 1;
+            }
+            return obj;
+        }
+
         static drawRect(paper, rect, text, fillcolor = '#ff0', bordercolor = '#000', textcolor = '#000') {
-            var rectangle = paper.rect(rect.x, rect.y - rect.h, rect.w, rect.h);
-            rectangle.attr('fill', fillcolor);
-            rectangle.attr('stroke', bordercolor);
+            var rectangle = paper.rect(rect.x, rect.y - rect.h, rect.w, rect.h).attr('fill', fillcolor).attr('stroke', bordercolor);
             var centerPos = new Vec2(rect.x + rect.w / 2.0, rect.y - rect.h / 2.0);
-            var txt = paper.text(centerPos.x, centerPos.y, text);
-            txt.attr('font-size', 22);
-            txt.attr('fill', textcolor);
+            var txt = paper.text(centerPos.x, centerPos.y, text).attr('font-size', 22).attr('fill', textcolor);
             return [rectangle, txt];
         }
 
@@ -99,7 +119,6 @@ $(document).ready(function () {
         static drawArrow(paper, base, offset) {
             return Helpers.drawLine(paper, base, offset).attr('arrow-end', 'classic-wide-long');
         }
-
     }
 
     class ScheduleData {
@@ -123,6 +142,7 @@ $(document).ready(function () {
             this.computePalette();
 
             this.recomputeRects = true;
+            this.overlayObjects = {};
         }
 
         getDemand(j, r) {
@@ -133,7 +153,7 @@ $(document).ready(function () {
 
         drawQuad(paper, j, rcolors, xOffset, yOffset) {
             var rgeometry = new Rectangle(this.origin.x + xOffset, this.origin.y + yOffset, this.scale, this.scale);
-            Helpers.drawRect(paper, rgeometry, j, rcolors.rectcolor, '#000', rcolors.textcolor);
+            Helpers.drawRect(paper, rgeometry, (j+1), rcolors.rectcolor, '#000', rcolors.textcolor);
             if(this.recomputeRects) {
                 this.jobRects[j].push(new Rectangle(rgeometry.x, rgeometry.y-rgeometry.h, rgeometry.w, rgeometry.h));
             }
@@ -185,7 +205,7 @@ $(document).ready(function () {
                 var yOffset = 0;
                 var xOffset = (t-1) * this.scale;
                 for(let j = 0; j < this.numJobs; j++) {
-                    if(this.sts[j] < t && t <= this.ft(j)) {
+                    if(this.sts[j] >= 0 && this.sts[j] < t && t <= this.ft(j)) {
                         for(let c = 0; c < this.getDemand(j, this.selectedResource); c++) {
                             this.drawQuad(paper, j, this.rcolors[j], xOffset, yOffset);
                             yOffset -= this.scale;
@@ -237,47 +257,121 @@ $(document).ready(function () {
             return undefined;
         }
 
-        drawJobOverlay(paper, pos, jobId, opacityLevel = 0.95) {
-            var r = new Rectangle(pos.x, pos.y, this.durations[jobId] * this.scale, this.getDemand(jobId, this.selectedResource) * this.scale);
-            var pair = Helpers.drawRect(paper, r, jobId, this.rcolors[jobId].rectcolor, '#000', this.rcolors[jobId].textcolor);
-            pair[0].attr('opacity', opacityLevel);
-            pair[1].attr('opacity', opacityLevel);
-            Helpers.drawArrow(paper, new Vec2(r.x, r.y+10), new Vec2(r.w, 0)).attr('opacity', opacityLevel);
-            Helpers.drawArrow(paper, new Vec2(r.x-10, r.y), new Vec2(0, -r.h)).attr('opacity', opacityLevel);
-            paper.text(r.x-30, r.y-r.h/2, 'k'+jobId+'='+this.getDemand(jobId, this.selectedResource)).attr('font-size', 15).attr('opacity', opacityLevel);
-            paper.text(r.x+r.w/2, r.y+30, 'd'+jobId+'='+this.durations[jobId]).attr('font-size', 15).attr('opacity', opacityLevel);
+        getJobOverlay(paper, pos, jobId, opacityLevel = 0.95) {
+            if(this.overlayObjects[jobId] === undefined) {
+                var r = new Rectangle(pos.x, pos.y, this.durations[jobId] * this.scale, this.getDemand(jobId, this.selectedResource) * this.scale);
+                var pair = Helpers.drawRect(paper, r, jobId+1, this.rcolors[jobId].rectcolor, '#000', this.rcolors[jobId].textcolor);
+                pair[0].attr('opacity', opacityLevel);
+                pair[1].attr('opacity', opacityLevel);
+                var retObj = {};
+                retObj.arrow1 = Helpers.drawArrow(paper, new Vec2(r.x, r.y+10), new Vec2(r.w, 0)).attr('opacity', opacityLevel);
+                retObj.arrow2 = Helpers.drawArrow(paper, new Vec2(r.x-10, r.y), new Vec2(0, -r.h)).attr('opacity', opacityLevel);
+                retObj.demandText = paper.text(r.x-30, r.y-r.h/2, 'k'+(jobId+1)+'='+this.getDemand(jobId, this.selectedResource)).attr('font-size', 15).attr('opacity', opacityLevel);
+                retObj.durationText = paper.text(r.x+r.w/2, r.y+30, 'd'+(jobId+1)+'='+this.durations[jobId]).attr('font-size', 15).attr('opacity', opacityLevel);
+                retObj.rectangle = pair[0];
+                retObj.text = pair[1];
+                retObj.lastpos = pos;
+                this.overlayObjects[jobId] = retObj;
+                return retObj;
+            } else {
+                return this.overlayObjects[jobId];
+            }
+
+        }
+
+        static moveJobOverlay(overlayObj, x, y) {
+            var dx = x - overlayObj.lastpos.x;
+            var dy = y - overlayObj.lastpos.y;
+            for(var k in overlayObj) {
+                if(k == 'lastpos') continue;
+                overlayObj[k].translate(dx, dy);
+            }
+            overlayObj.lastpos.x = x;
+            overlayObj.lastpos.y = y;
+        }
+
+        getExecutedActivitiesStr() {
+            var eas = '';
+            for(var j=0; j<this.numJobs; j++)
+                if(this.sts[j] != -1)
+                    eas += (j+1) + ', ';
+            return eas.substring(0, eas.length-2);
+        }
+
+        getNotExecutedActivitiesStr() {
+            var neas = '';
+            for(var j=0; j<this.numJobs; j++)
+                if(this.sts[j] == -1)
+                    neas += (j+1) + ', ';
+            return neas.substring(0, neas.length-2);
+        }
+
+        hideOverlays() {
+            for(let j in this.overlayObjects) {
+                for(let k in this.overlayObjects[j]) {
+                    if(k == 'lastpos') continue;
+                    this.overlayObjects[j][k].hide();
+                }
+            }
+        }
+
+        showOverlay(o) {
+            for(let k in o) {
+                if(k == 'lastpos') continue;
+                o[k].show();
+            }
         }
     }
 
-    jQuery.get('ergebnisse.txt', function(contents) {
-        var gmsOutObj = Helpers.gamsOutputLinesToObject(contents.match(/[^\r\n]+/g));
-        var sd = new ScheduleData(gmsOutObj /*exampleScheduleData*/);
+    var main = function(obj, objectiveData) {
+        var sd = new ScheduleData(obj);
         var paper = Raphael(document.getElementById('area'), sd.targetWidth(), sd.targetHeight());
         sd.draw(paper);
         $('#resource-select').html(sd.getResourceOptionStr()).change(function() {
             if(sd.changeResource(parseInt($('#resource-select').val().replace('Resource ', '')) - 1))
                 sd.draw(paper);
         });
-        $('#njobs').html(sd.numJobs);
-        $('#nres').html(sd.numRes);
-        $('#nperiods').html(sd.numPeriods);
         $('#makespan').html(sd.getMakespan());
+        $('#executed').html(sd.getExecutedActivitiesStr());
+        $('#not-executed').html(sd.getNotExecutedActivitiesStr());
+        $('#profit').html(objectiveData.objval);
+        $('#costs').html(objectiveData.costs);
+        $('#qlevelreached').html(qlevel_captions[objectiveData.qlevelfinish]);
+        $('#qattr0').html(objectiveData.attrlevel0);
+        $('#qattr1').html(objectiveData.attrlevel1);
         var hoverBefore = true;
         $('#area').mousemove(function(event) {
             var offset = $(this).offset();
             var mousePos = new Vec2(event.pageX - offset.left, event.pageY - offset.top);
             var hoveringOverJob = sd.checkJobHovering(mousePos);
             if(hoveringOverJob !== undefined) {
-                paper.clear();
-                sd.draw(paper);
-                paper.rect(0, 0, sd.targetWidth(), sd.targetHeight()).attr('fill', '#ccc').attr('opacity', 0.5);
-                sd.drawJobOverlay(paper, mousePos, hoveringOverJob);
+                /*paper.clear();
+                sd.draw(paper);*/
+                //paper.rect(0, 0, sd.targetWidth(), sd.targetHeight()).attr('fill', '#ccc').attr('opacity', 0.5);
+                var o = sd.getJobOverlay(paper, mousePos, hoveringOverJob);
+                sd.hideOverlays();
+                sd.showOverlay(o);
+                ScheduleData.moveJobOverlay(o, mousePos.x, mousePos.y);
                 hoverBefore = true;
             } else if(hoverBefore) {
                 hoverBefore = false;
-                paper.clear();
-                sd.draw(paper);
+                //paper.clear();
+                //sd.draw(paper);
+                sd.hideOverlays();
             }
+        }).mouseleave(function(event) {
+            //paper.clear();
+            //sd.draw(paper);
+            sd.hideOverlays();
+        });
+    };
+
+    //main(exampleScheduleData, exampleObjectives);
+
+    jQuery.get('ergebnisse.txt', function(contents) {
+        var gmsOutObj = Helpers.gamsOutputLinesToObject(contents.match(/[^\r\n]+/g));
+        jQuery.get('zielwerte.txt', function(contents2) {
+            main(gmsOutObj, Helpers.parseObjectives(contents2));
         });
     });
 

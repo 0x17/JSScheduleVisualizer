@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+	<meta charset="utf-8" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 	<script src="jquery-3.1.1.min.js"></script>
 	<script src="raphael.min.js"></script>
 	<script src="schedulevis.js"></script>
+    <style>
+        .table-nonfluid {
+            width: auto !important;
+        }
+    </style>
 </head>
 <body>
 	<div id="area" align="left"></div>
@@ -12,13 +18,17 @@
 	<p>
 		<div align="center">Active resource: <select title="resource" name="res" id="resource-select"></select></div><br />
 
-		<div class="container">
-			<table class="table table-striped">
+		<div class="container" align="center">
+			<table class="table table-striped table-nonfluid">
 				<tr><th>Date</th><th>Value</th></tr>
-				<tr><td>#jobs</td><td><div id="njobs"></div></td></tr>
-				<tr><td>#periods</td><td><div id="nperiods"></div></td></tr>
-				<tr><td>#resources</td><td><div id="nres"></div></td></tr>
 				<tr><td>makespan</td><td><div id="makespan"></div></td></tr>
+				<tr><td>costs</td><td><div id="costs"></div></td></tr>
+				<tr><td>profit</td><td><div id="profit"></div></td></tr>
+				<tr><td>quality-level reached</td><td><div id="qlevelreached"></div></td></tr>
+				<tr><td>quality value attribute 0</td><td><div id="qattr0"></div></td></tr>
+				<tr><td>quality value attribute 1</td><td><div id="qattr1"></div></td></tr>
+				<tr><td>executed activities</td><td><div id="executed"></div></td></tr>
+				<tr><td>not executed activities</td><td><div id="not-executed"></div></td></tr>
 			</table>
 		</div>
 	</p>
