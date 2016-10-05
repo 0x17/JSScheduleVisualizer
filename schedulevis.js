@@ -276,6 +276,7 @@ $(document).ready(function () {
                 retObj.demandText = paper.text(r.x-30, r.y-r.h/2, 'k'+(jobId+1)+'='+this.getDemand(jobId, this.selectedResource)).attr('font-size', 15).attr('opacity', opacityLevel);
                 retObj.durationText = paper.text(r.x+r.w/2, r.y+30, 'd'+(jobId+1)+'='+this.durations[jobId]).attr('font-size', 15).attr('opacity', opacityLevel);
                 retObj.rectangle = pair[0];
+                retObj.rectGlow = retObj.rectangle.glow({ 'width': 5 });
                 retObj.text = pair[1];
                 retObj.lastpos = pos;
                 this.overlayObjects[jobId] = retObj;
@@ -354,9 +355,6 @@ $(document).ready(function () {
             var mousePos = new Vec2(event.pageX - offset.left, event.pageY - offset.top);
             var hoveringOverJob = sd.checkJobHovering(mousePos);
             if(hoveringOverJob !== undefined) {
-                /*paper.clear();
-                sd.draw(paper);*/
-                //
                 var o = sd.getJobOverlay(paper, mousePos, hoveringOverJob);
                 sd.hideOverlays();
                 sd.showOverlay(paper, o);
@@ -364,13 +362,9 @@ $(document).ready(function () {
                 hoverBefore = true;
             } else if(hoverBefore) {
                 hoverBefore = false;
-                //paper.clear();
-                //sd.draw(paper);
                 sd.hideOverlays();
             }
         }).mouseleave(function(event) {
-            //paper.clear();
-            //sd.draw(paper);
             sd.hideOverlays();
         });
     };
