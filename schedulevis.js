@@ -18,7 +18,7 @@ $(document).ready(function () {
         'attrlevel1': 20,
     };
 
-    var qlevel_captions = ['D', 'B', 'A'];
+    var qlevel_captions = ['A', 'B', 'C'];
 
     class Vec2 {
         constructor(x, y) {
@@ -123,6 +123,8 @@ $(document).ready(function () {
 
     class ScheduleData {
         constructor(data) {
+            Math.seedrandom('48');
+
             for (var attr in data) {
                 this[attr] = data[attr];
             }
@@ -194,8 +196,7 @@ $(document).ready(function () {
             }
         }
 
-        draw(paper) {
-            paper.clear();
+        draw(paper, attrs) {
             this.drawAxes(paper);
 
             if(this.recomputeRects) {
@@ -218,8 +219,10 @@ $(document).ready(function () {
                 }
             }
 
+            this.getAttributesStr(paper, attrs);
+
             if(this.greyRect === undefined)
-                this.greyRect = paper.rect(0, 0, this.targetWidth(), this.targetHeight()).attr('fill', '#ccc').attr('opacity', 0.5);
+                this.greyRect = paper.rect(0, 0, this.targetWidth(), this.targetHeight()).attr('fill', '#eee').attr('opacity', 0.5);
 
             this.recomputeRects = false;
         }
@@ -331,24 +334,59 @@ $(document).ready(function () {
                 o[k].show();
             }
         }
+
+        getAttributesStr(paper, attrs) {
+            var capr = this.capacities[this.selectedResource];
+            var attrStr = '';
+            for(var key in attrs) {
+                if(key === 'executedActivities' || key === 'notExecutedActivities') continue;
+                attrStr += key + '=' + attrs[key] + ', ';
+            }
+            attrStr = attrStr.substr(0, attrStr.length-2);
+            paper.text(this.origin.x + 600, this.origin.y - (capr + 1.5) * this.scale, attrStr).attr('font-size', 15);
+        }
     }
+
+    $('#togglebtn').click(function(event) { $('#attrtable').toggle(); return false; });
+
+    var fillAttributeTable = function(attrs) {
+        $('#makespan').html(attrs.makespan);
+        $('#executed').html(attrs.executedActivities);
+        $('#not-executed').html(attrs.notExecutedActivities);
+        $('#profit').html(attrs.profit);
+        $('#costs').html(attrs.costs);
+        $('#qlevelreached').html(attrs.qlevelreached);
+        $('#qattr0').html(attrs.attrlevel1);
+        $('#qattr1').html(attrs.attrlevel2);
+    };
+
+    var initAttributes = function(sd, objectiveData) {
+        return {
+            'makespan': sd.getMakespan(),
+            'executedActivities': sd.getExecutedActivitiesStr(),
+            'notExecutedActivities': sd.getNotExecutedActivitiesStr(),
+            'profit': objectiveData.objval,
+            'costs': objectiveData.costs,
+            'qlevelreached': qlevel_captions[objectiveData.qlevelfinish-1],
+            'attrlevel1': objectiveData.attrlevel0,
+            'attrlevel2': objectiveData.attrlevel1
+        };
+    };
 
     var main = function(obj, objectiveData) {
         var sd = new ScheduleData(obj);
         var paper = Raphael(document.getElementById('area'), sd.targetWidth(), sd.targetHeight());
-        sd.draw(paper);
+
+        var attrs = initAttributes(sd, objectiveData);
+
+        sd.draw(paper, attrs);
+        fillAttributeTable(attrs);
+
         $('#resource-select').html(sd.getResourceOptionStr()).change(function() {
             if(sd.changeResource(parseInt($('#resource-select').val().replace('Resource ', '')) - 1))
                 sd.draw(paper);
         });
-        $('#makespan').html(sd.getMakespan());
-        $('#executed').html(sd.getExecutedActivitiesStr());
-        $('#not-executed').html(sd.getNotExecutedActivitiesStr());
-        $('#profit').html(objectiveData.objval);
-        $('#costs').html(objectiveData.costs);
-        $('#qlevelreached').html(qlevel_captions[objectiveData.qlevelfinish]);
-        $('#qattr0').html(objectiveData.attrlevel0);
-        $('#qattr1').html(objectiveData.attrlevel1);
+
         var hoverBefore = true;
         $('#area').mousemove(function(event) {
             var offset = $(this).offset();
@@ -367,6 +405,7 @@ $(document).ready(function () {
         }).mouseleave(function(event) {
             sd.hideOverlays();
         });
+        return sd;
     };
 
     //main(exampleScheduleData, exampleObjectives);
@@ -374,8 +413,29 @@ $(document).ready(function () {
     jQuery.get('ergebnisse.txt', function(contents) {
         var gmsOutObj = Helpers.gamsOutputLinesToObject(contents.match(/[^\r\n]+/g));
         jQuery.get('zielwerte.txt', function(contents2) {
-            main(gmsOutObj, Helpers.parseObjectives(contents2));
+            var sd = main(gmsOutObj, Helpers.parseObjectives(contents2));
+            PDFJS.getDocument('forgviz.pdf').then(function(pdf) {
+                pdf.getPage(1).then(function(page) {
+                    var desiredWidth = 640;
+                    var viewport = page.getViewport(1);
+                    var scale = desiredWidth / viewport.width;
+                    var scaledViewport = page.getViewport(scale);
+
+                    var canvas = document.getElementById('the-canvas');
+                    var context = canvas.getContext('2d');
+                    canvas.height = scaledViewport.height;
+                    canvas.width = scaledViewport.width;
+
+                    var renderContext = {
+                        canvasContext: context,
+                        viewport: scaledViewport
+                    };
+                    page.render(renderContext);
+                });
+            });
         });
     });
+
+
 
 });
