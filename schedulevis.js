@@ -2,6 +2,16 @@
  * Created by a.schnabel on 26.09.2016.
  */
 
+function loadPalette(lines_str) {
+    var rcolors = [];
+    var lines = lines_str.split('\n');
+    for(let j = 0; j< lines.length; j++) {
+        let parts = lines[j].split(';');
+        rcolors.push({'textcolor': parts[2], 'rectcolor': parts[1]});
+    }
+    return rcolors;
+}
+
 $(document).ready(function () {
     var exampleScheduleData = {
         'durations': [0, 4, 2, 2, 5, 0],
@@ -122,7 +132,7 @@ $(document).ready(function () {
     }
 
     class ScheduleData {
-        constructor(data) {
+        constructor(data, palette) {
             Math.seedrandom('99');
 
             for (var attr in data) {
@@ -141,10 +151,11 @@ $(document).ready(function () {
             this.origin = new Vec2(100, this.targetHeight()-75);
 
             this.selectedResource = 0;
-            this.computePalette();
 
             this.recomputeRects = true;
             this.overlayObjects = {};
+
+            this.rcolors = palette;
         }
 
         getDemand(j, r) {
@@ -187,13 +198,6 @@ $(document).ready(function () {
             paper.text(this.origin.x - this.scale * 1.5, this.origin.y - this.scale * capr, 'Kr').attr('font-size', 22);
 
             Helpers.drawLine(paper, new Vec2(this.origin.x, this.origin.y - capr * this.scale), new Vec2((this.numPeriods +1) * this.scale, 0)).attr('stroke', 'red').attr('stroke-dasharray', '--');
-        }
-
-        computePalette() {
-            this.rcolors = {};
-            for(let j = 0; j< this.numJobs; j++) {
-                this.rcolors[j] = Helpers.randomColors();
-            }
         }
 
         draw(paper, attrs) {
@@ -374,8 +378,8 @@ $(document).ready(function () {
         };
     };
 
-    var main = function(obj, objectiveData) {
-        var sd = new ScheduleData(obj);
+    var main = function(obj, objectiveData, palette) {
+        var sd = new ScheduleData(obj, palette);
         var paper = Raphael(document.getElementById('area'), sd.targetWidth(), sd.targetHeight());
 
         var attrs = initAttributes(sd, objectiveData);
@@ -411,32 +415,33 @@ $(document).ready(function () {
 
     //main(exampleScheduleData, exampleObjectives);
 
-    jQuery.get('ergebnisse.txt', function(contents) {
-        var gmsOutObj = Helpers.gamsOutputLinesToObject(contents.match(/[^\r\n]+/g));
-        jQuery.get('zielwerte.txt', function(contents2) {
-            var sd = main(gmsOutObj, Helpers.parseObjectives(contents2));
-            PDFJS.getDocument('forgviz.pdf').then(function(pdf) {
-                pdf.getPage(1).then(function(page) {
-                    var desiredWidth = 640;
-                    var viewport = page.getViewport(1);
-                    var scale = desiredWidth / viewport.width;
-                    var scaledViewport = page.getViewport(scale);
+    jQuery.get('jobcolors.txt', function(contents3) {
+        jQuery.get('ergebnisse.txt', function(contents) {
+            var gmsOutObj = Helpers.gamsOutputLinesToObject(contents.match(/[^\r\n]+/g));
+            jQuery.get('zielwerte.txt', function(contents2) {
+                var sd = main(gmsOutObj, Helpers.parseObjectives(contents2), loadPalette(contents3));
+                PDFJS.getDocument('forgviz.pdf').then(function(pdf) {
+                    pdf.getPage(1).then(function(page) {
+                        var desiredWidth = 640;
+                        var viewport = page.getViewport(1);
+                        var scale = desiredWidth / viewport.width;
+                        var scaledViewport = page.getViewport(scale);
 
-                    var canvas = document.getElementById('the-canvas');
-                    var context = canvas.getContext('2d');
-                    canvas.height = scaledViewport.height;
-                    canvas.width = scaledViewport.width;
+                        var canvas = document.getElementById('the-canvas');
+                        var context = canvas.getContext('2d');
+                        canvas.height = scaledViewport.height;
+                        canvas.width = scaledViewport.width;
 
-                    var renderContext = {
-                        canvasContext: context,
-                        viewport: scaledViewport
-                    };
-                    page.render(renderContext);
+                        var renderContext = {
+                            canvasContext: context,
+                            viewport: scaledViewport
+                        };
+                        page.render(renderContext);
+                    });
                 });
             });
         });
     });
-
 
 
 });
