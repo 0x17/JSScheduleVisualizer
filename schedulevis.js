@@ -123,7 +123,7 @@ $(document).ready(function () {
 
     class ScheduleData {
         constructor(data) {
-            Math.seedrandom('48');
+            Math.seedrandom('99');
 
             for (var attr in data) {
                 this[attr] = data[attr];
@@ -366,6 +366,7 @@ $(document).ready(function () {
             'executedActivities': sd.getExecutedActivitiesStr(),
             'notExecutedActivities': sd.getNotExecutedActivitiesStr(),
             'profit': objectiveData.objval,
+            'revenue': objectiveData.objval+objectiveData.costs,
             'costs': objectiveData.costs,
             'qlevelreached': qlevel_captions[objectiveData.qlevelfinish-1],
             'attrlevel1': objectiveData.attrlevel0,
